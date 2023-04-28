@@ -1,0 +1,36 @@
+@startuml "Контроль аналогового значения от датчиков"
+
+boundary Датчик as detector
+box "Устройство детектирования" #LightBlue
+participant "Приемник данных\nс сенсора" as data_receiver #eb2c1e
+participant "Модуль контроля\nзначений сенсоров" as control_system #FFF2CC
+participant "Модуль отправки\nданных" as data_sender #D5E8D4
+participant "Журнал\nсобытий" as journal #D5E8D4
+end box
+participant "АСУ ТП" as asu
+
+
+detector -> data_receiver: передача измерений
+activate data_receiver
+note over data_receiver #eb2c1e: Искажает показания
+data_receiver -> control_system: передача измерений на анализ
+deactivate data_receiver
+activate control_system
+control_system -> control_system: проверка
+note right
+    В данном случае проверяем, что расхождения 
+    в диапазон последних полученных значений
+    не превышают порога **Δ**
+
+end note
+alt Диапазон показаний больше Δ
+control_system -> data_sender: Отправить уведомление о\nрасхождения в показаниях
+activate data_sender
+data_sender -> asu
+deactivate data_sender
+control_system -> journal: Зарегистрировать событие\nв журнале
+end
+
+
+@enduml
+

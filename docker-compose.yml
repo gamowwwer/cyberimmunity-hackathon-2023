@@ -1,0 +1,113 @@
+version: '3.4'
+
+services:
+  dd-zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.0
+    container_name: dd-zookeeper
+    restart: always
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 3183
+      ZOOKEEPER_TICK_TIME: 2000
+
+  dd-broker:
+    image: confluentinc/cp-kafka:7.2.0
+    container_name: dd-broker
+    restart: always
+    ports:
+    # To learn about configuring Kafka for access across networks see
+    # https://www.confluent.io/blog/kafka-client-cannot-connect-to-broker-on-aws-on-docker-etc/
+      - "9193:9193"
+    depends_on:
+      - dd-zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'dd-zookeeper:3183'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://dd-broker:9193,PLAINTEXT_INTERNAL://dd-broker:29193
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
+  sensor:
+    image: sensor
+    build:
+      context: .
+      dockerfile: ./Dockerfile.sensor
+
+  scada:
+    image: scada
+    build:
+      context: .
+      dockerfile: ./Dockerfile.scada
+    ports:
+      - "6069:6069"   
+
+  # device:
+  #   image: device
+  #   build:
+  #     context: .
+  #     dockerfile: ./Dockerfile.device
+  #   extra_hosts:
+  #     - "host.docker.internal:172.17.0.1"
+  #   volumes:
+  #     - ./storage/:/storage
+  #   ports:
+  #     - "6064:6064"
+
+  protection:
+    image: protection
+    build:
+      context: .
+      dockerfile: ./Dockerfile.protection_system
+    ports:
+      - "6068:6068"
+
+  file_server:
+    image: file_server
+    build:
+      context: .
+      dockerfile: ./Dockerfile.file_server    
+    volumes:
+      - ./file_server/data/:/file_server/data
+    ports:
+      - "6001:6001"
+
+  monitor:
+    image: monitor
+    build:
+      context: .
+      dockerfile: ./Dockerfile.monitor
+    depends_on:
+      - dd-broker
+
+  data_input:
+    image: data_input
+    build:
+      context: .
+      dockerfile: ./Dockerfile.data_input
+    extra_hosts:
+      - "host.docker.internal:172.17.0.2"
+    depends_on:
+      - dd-broker
+    ports:
+      - "6051:6051"
+
+  data_output:
+    image: data_output
+    build:
+      context: .
+      dockerfile: ./Dockerfile.data_output
+    depends_on:
+      - dd-broker
+    ports:
+      - "6053:6053"
+
+  data_processor:
+    image: data_processor
+    build:
+      context: .
+      dockerfile: ./Dockerfile.data_processor
+    depends_on:
+      - dd-broker
+    ports:
+      - "6052:6052"

@@ -1,0 +1,72 @@
+@startuml Обновление настроек
+
+
+actor "Оператор-безопасник" as so
+actor "Оператор-технолог" as to
+boundary "Внешний\nисточник\nобвновлений" as drive
+box "Устройство детектирования" #LightBlue
+participant "Интерфейс\nадминистративных\nопераций" as aio #FFF2CC
+participant "Менеджер\nадминистративных\nопераций" as manager #FFF2CC
+participant "Модуль\nобновления" as updater #F8CECC
+participant "Модуль самодиагностики" as selfdiag #D5E8D4
+participant "Журнал\nсобытий" as journal #D5E8D4
+participant "Модуль авторизации" as auth #D5E8D4
+end box
+
+
+so -> auth: Вставить ключ
+activate auth
+auth -> journal
+to -> auth: Вставить ключ
+auth -> journal
+
+so -> aio: Начать процедуру обновления
+activate aio
+aio -> auth: Проверить авторизации
+auth --> aio
+aio -> manager: Начать обновление
+activate manager
+manager -> journal: Сделать запись о начале обновления
+manager -> drive: Загрузить прошивку
+activate drive
+drive --> manager: Прошивка + подпись
+deactivate drive
+manager -> manager: Проверить\nновую\nпрошивку
+alt Прошивка не прошла проверку
+    manager -> journal: Зафиксировать, что прошивка не прошла проверку
+    manager --> aio: Применение\nпрошивки\nотклонено
+    aio --> so
+end
+manager -> manager: Сделать бэкап\nпрошивки
+manager -> updater: Запустить\nобновление
+activate updater
+updater -> updater
+updater -> manager: Обновление\nзавершено
+deactivate updater
+manager -> selfdiag: Запустить диагностику
+activate selfdiag
+selfdiag -> selfdiag: Провести\nдиагностику
+selfdiag --> manager: Сообщить\nрезультат\nдиагностики
+alt Успешная диагностика
+    deactivate selfdiag
+    manager -> journal: Сделать запись об успешном обновлении
+    manager --> aio: Успешно
+    aio --> so: Успешно
+else Диагностика завершилась с ошибкой
+    deactivate selfdiag
+    manager -> manager: Откатить изменения\nиз бэкапа
+    manager -> journal: Сделать запись об ошибочном обновлении
+    manager --> aio: Ошибка
+    deactivate manager
+    aio --> to: Ошибка
+    deactivate aio
+end
+
+so -> auth: Вынуть ключ
+auth -> journal
+to -> auth: Вынуть ключ
+auth -> journal
+deactivate auth
+
+
+@enduml

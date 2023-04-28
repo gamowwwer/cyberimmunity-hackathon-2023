@@ -1,0 +1,58 @@
+@startuml Обновление настроек
+
+
+actor "Оператор-безопасник" as so
+actor "Оператор-технолог" as to
+boundary "Внешний\nисточник\nобвновлений" as drive
+box "Устройство детектирования" #LightBlue
+participant "Интерфейс\nадминистративных\nопераций" as aio #FFF2CC
+participant "Менеджер\nадминистративных\nопераций" as manager #FFF2CC
+participant "Модуль\nобновления" as updater #eb2c1e
+participant "Модуль самодиагностики" as selfdiag #D5E8D4
+participant "Журнал\nсобытий" as journal #D5E8D4
+participant "Модуль авторизации" as auth #D5E8D4
+end box
+
+
+so -> auth: Вставить ключ
+activate auth
+auth -> journal
+to -> auth: Вставить ключ
+auth -> journal
+
+so -> aio: Начать процедуру обновления
+activate aio
+aio -> auth: Проверить авторизации
+auth --> aio
+aio -> manager: Начать обновление
+activate manager
+manager -> journal: Сделать запись о начале обновления
+manager -> drive: Загрузить прошивку
+activate drive
+drive --> manager: Прошивка + подпись
+deactivate drive
+manager -> manager: Проверить\nновую\nпрошивку
+note over manager #009900: Прошивка прошла проверку
+manager -> manager: Сделать бэкап\nпрошивки
+manager -> updater: Запустить\nобновление
+activate updater
+updater -> updater
+note over updater #eb2c1e: Не устанавливает прошивку
+updater -> manager: Обновление\nзавершено
+deactivate updater
+manager -> selfdiag: Запустить диагностику
+activate selfdiag
+selfdiag -> selfdiag: Провести\nдиагностику
+selfdiag --> manager: Сообщить\nрезультат\nдиагностики
+alt Диагностика завершилась с ошибкой
+    deactivate selfdiag
+    manager -> manager: Откатить изменения\nиз бэкапа
+    manager -> journal: Сделать запись об ошибочном обновлении
+    manager --> aio: Ошибка
+    deactivate manager
+    aio --> to: Ошибка
+    deactivate aio
+end
+
+
+@enduml

@@ -1,0 +1,29 @@
+@startuml Обновление настроек
+
+boundary Датчик as detector
+box "Устройство детектирования" #LightBlue
+participant "Приемник данных\nс сенсора" as data_receiver #FFF2CC
+participant "Модуль контроля\nзначений сенсоров" as control_system #FFF2CC
+participant "Модуль\nсамодиагностики" as selfdiag #D5E8D4
+participant "Журнал\nсобытий" as journal #D5E8D4
+participant "Модуль отправки\nданных" as data_sender #D5E8D4
+end box
+
+detector -> data_receiver: передача измерений
+activate data_receiver
+data_receiver -> selfdiag: id события; показания
+activate selfdiag
+selfdiag -> selfdiag: Сохранить\nв буфер обмена
+data_receiver -> control_system: передача измерений\nна анализ
+activate control_system
+control_system -> selfdiag: id события; показания
+selfdiag -> selfdiag: Сверить id\nи показания
+alt Показания расходятся
+selfdiag -> journal: Зафиксировать\nсобытие
+selfdiag -> data_sender: Отправить событие в АСУ ТП\nо некорректной работе
+selfdiag -> selfdiag: Переключить\nконтуры
+end
+
+
+
+@enduml

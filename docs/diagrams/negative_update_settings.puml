@@ -1,0 +1,45 @@
+@startuml Обновление настроек
+
+
+actor "Оператор-безопасник" as so
+actor "Оператор-технолог" as to
+boundary "Внешний\nисточник\nобвновлений" as drive #eb2c1e
+box "Устройство детектирования" #LightBlue
+participant "Интерфейс\nадминистративных\nопераций" as aio #FFF2CC
+participant "Менеджер\nадминистративных\nопераций" as manager #FFF2CC
+participant "Модуль\nсамодиагностики" as selfdiag #D5E8D4
+participant "Модуль контроля\nзначений сенсоров" as control_system #FFF2CC
+participant "Журнал\nсобытий" as journal #D5E8D4
+participant "Модуль авторизации" as auth #D5E8D4
+end box
+
+
+so -> auth: Вставить ключ
+activate auth
+auth -> journal
+to -> auth: Вставить ключ
+auth -> journal
+
+to -> aio: Начать процедуру настройки
+activate aio
+aio -> auth: Проверить авторизации
+auth --> aio
+aio -> manager: Начать обновление настроек
+activate manager
+manager -> journal: Сделать запись о начале обновления
+manager -> drive: Получить новые настройки
+activate drive
+note over drive #eb2c1e: Содержит недопустимые настройки
+drive --> manager: Новые настройки
+deactivate drive
+manager -> manager: Проверить,\nчто настройки\nне превышают\nдопустимые лимиты
+alt Недопустимые настройки
+    manager -> journal: Зафиксировать, что настройки некорректны
+    manager --> aio: Недопустимые\nнастройки
+    deactivate manager
+    aio --> to
+    deactivate aio
+end
+
+
+@enduml

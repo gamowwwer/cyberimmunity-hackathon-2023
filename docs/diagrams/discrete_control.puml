@@ -1,0 +1,43 @@
+@startuml "Контроль аналогового значения от датчиков"
+
+boundary Датчик as detector
+box "Устройство детектирования" #LightBlue
+participant "Приемник данных\nс сенсора" as data_receiver #FFF2CC
+participant "Модуль контроля\nзначений сенсоров" as control_system #FFF2CC
+participant "Модуль отправки\nданных" as data_sender #D5E8D4
+participant "Журнал\nсобытий" as journal #D5E8D4
+end box
+participant "СУЗ" as ss
+participant "АСУ ТП" as asu
+
+
+detector -> data_receiver: передача измерений
+activate data_receiver
+data_receiver -> control_system: передача измерений на анализ
+deactivate data_receiver
+activate control_system
+control_system -> control_system: проверка
+note right
+    В данном случае проверяем, что показания 
+    не превышают порога **Θ**
+
+end note
+alt Показания не превышают Θ
+control_system -> data_sender
+activate data_sender
+data_sender -> asu
+deactivate data_sender
+else Показания больше Θ
+control_system -> data_sender: Отправить сигнал\nдля активации защиты
+activate data_sender
+data_sender -> ss
+deactivate data_sender
+control_system -> journal: Зарегистрировать событие\nв журнале
+control_system -> data_sender: Отправить сигнал тревоги\nв АСУ ТП
+activate data_sender
+data_sender -> asu
+deactivate data_sender
+end
+
+
+@enduml

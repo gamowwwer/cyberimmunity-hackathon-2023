@@ -1,0 +1,7 @@
+flask
+requests
+confluent-kafka==2.0.2
+configparser
+pytest
+pytest-rerunfailures
+docker

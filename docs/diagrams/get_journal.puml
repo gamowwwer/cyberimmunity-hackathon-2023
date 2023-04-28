@@ -1,0 +1,50 @@
+@startuml Работа с журналом событий
+
+
+actor "Оператор-безопасник" as so
+box "Устройство детектирования" #LightBlue
+participant "Интерфейс\nадминистративных\nопераций" as aio #FFF2CC
+participant "Менеджер\nадминистративных\nопераций" as manager #FFF2CC
+participant "Журнал\nсобытий" as journal #D5E8D4
+participant "Модуль авторизации" as auth #D5E8D4
+end box
+
+so -> auth: Вставить ключ
+activate auth
+auth -> journal
+
+so -> aio: Начать сессию
+activate aio
+alt Запрос событий
+    so -> aio: Запросить журнал
+    
+    aio -> auth: Проверить\nавторизацию
+    auth --> aio
+    aio -> manager
+    activate manager
+    manager -> journal: Прочитать события
+    journal --> manager: События
+    manager -> journal: Сделать запись\nо чтении событий
+    manager --> aio: События
+    aio --> so: События
+else Удаление событий
+    so -> aio: Запросить удаление
+    aio -> auth: Проверить\nавторизацию
+    auth --> aio
+    aio -> manager: Инициировать удаление
+    manager -> manager: Сделать\nбэкап
+    manager -> journal: Удалить
+    journal --> manager
+    manager -> journal: Записать\nсобытие\nоб удалении
+    manager --> aio
+    deactivate manager
+    aio --> so: Успешно
+    deactivate aio
+end
+
+so -> auth: Вынуть ключ
+auth -> journal
+deactivate auth
+
+
+@enduml
